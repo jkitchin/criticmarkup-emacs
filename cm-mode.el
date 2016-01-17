@@ -218,12 +218,16 @@ it is added automatically."
     (font-lock-add-keywords nil (cm-font-lock-keywords) t)
     (add-to-list 'font-lock-extra-managed-props 'read-only)
     (add-to-list 'font-lock-extra-managed-props 'rear-nonsticky)
+    (add-to-list 'font-lock-extra-managed-props 'local-map)
     (font-lock-fontify-buffer) ; usually sufficient to make the fontifications appear immediately
     (setq cm-current-markup-overlay (make-overlay 1 1))
     (overlay-put cm-current-markup-overlay 'face 'highlight))
    ((not cm-mode)                       ; cm-mode is turned off
     (font-lock-remove-keywords nil (cm-font-lock-keywords))
-    (setq font-lock-extra-managed-props (delq 'read-only (delq 'rear-nonsticky font-lock-extra-managed-props)))
+    (setq font-lock-extra-managed-props
+	  (delq 'read-only
+		(delq 'rear-nonsticky
+		      (delq 'local-map font-lock-extra-managed-props))))
     (let ((modified (buffer-modified-p)))
       (cm-make-markups-writable) ; we need to remove the read-only property by hand; it's cumbersome to do it with font-lock
       (unless modified
@@ -235,20 +239,63 @@ it is added automatically."
   "Create a font lock entry for markup TYPE."
   (let ((markup (cdr type))
         (face (intern (concat (symbol-name (car type)) "-face")))
-        font-lock)
+        font-lock
+	(map (make-sparse-keymap)))
+
+    (define-key map [mouse-1] (lambda ()
+				(interactive)
+				(let* ((markup-type
+					(capitalize
+					 (substring
+					  (format
+					   "%s"
+					   (car (cm-markup-at-point)))
+					  3)))
+				       (menu (make-sparse-keymap
+					      markup-type)))
+				  (cond ((or (string= markup-type "Addition")
+					     (string= markup-type "Deletion")
+					     (string= markup-type "Substitution"))
+					 (define-key menu
+					   [cm-reject-change-at-point]
+					   (cons (format "Reject %s" markup-type)
+						 'cm-reject-change-at-point))
+					 (define-key menu
+					   [cm-accept-change-at-point]
+					   (cons (format "Accept %s" markup-type)
+						 'cm-accept-change-at-point)))
+					;; the other markup types can only be deleted.
+					(t
+					 (define-key menu
+					   [cm-delete-change-at-point]
+					   (cons (format "Delete %s" markup-type)
+						 'cm-delete-change-at-point))))
+
+
+				  (call-interactively
+				   (or (car (x-popup-menu t menu))
+				       'ignore)))))
+
     (add-to-list 'font-lock (mapconcat #'(lambda (elt) ; first we create the regexp to match
                                            (regexp-opt (list elt) t))
                                        markup
                                        "\\([[:ascii:]]\\|[[:nonascii:]]\\)*?"))
-    (add-to-list 'font-lock `(0 ,face prepend) t) ; the highlighter for the entire change
+    (add-to-list 'font-lock `(0 '(face ,face
+				       local-map ,map
+				       mouse-face 'highlight
+				       help-echo "mouse-1: click to accept/reject") prepend) t) ; the highlighter for the entire change
     (dotimes (n (length markup))
       (add-to-list 'font-lock `(,(1+ n) '(face ,face read-only t)) t) ; make the tags read-only
       (add-to-list 'font-lock `("." (progn ; and make the read-only property of the final character rear-nonsticky
                                       (goto-char (1- (match-end ,(1+ n))))
                                       (1+ (point)))
                                 nil
-                                (0 '(face ,face rear-nonsticky (read-only)))) t))
+                                (0 '(face ,face rear-nonsticky (read-only))))
+		   t))
     font-lock))
+
+;; jrk 1/17/2016. The comment block below is no longer exactly correct since I
+;; added the local-map, mouse-face and help-echo above.
 
 ;; `cm-font-lock-for-markup' produces a font-lock entry that can be given
 ;; to `font-lock-add-keywords'. To illustrate, the entry it produces for
@@ -748,6 +795,33 @@ is of any other type, check if there's a commend and include it."
                 (list (car change) (concat (second change) (second comment)) (third change) (fourth comment))
               change)))))))
 
+(defun cm-accept-change-at-point ()
+  "Accept change at point."
+  (interactive)
+  (let ((change (cm-expand-change (cm-markup-at-point)))
+	(inhibit-read-only t))
+    (cm-without-following-changes
+      (delete-region (third change) (fourth change))
+      (insert (cm-substitution-string change ?a)))))
+
+(defun cm-reject-change-at-point ()
+  "Reject change at point."
+  (interactive)
+  (let ((change (cm-expand-change (cm-markup-at-point)))
+	(inhibit-read-only t))
+    (cm-without-following-changes
+      (delete-region (third change) (fourth change))
+      (insert (cm-substitution-string change ?r)))))
+
+(defun cm-delete-change-at-point ()
+  "Delete change at point."
+  (interactive)
+  (let ((change (cm-expand-change (cm-markup-at-point)))
+	(inhibit-read-only t))
+    (cm-without-following-changes
+      (delete-region (third change) (fourth change))
+      (insert (cm-substitution-string change ?d)))))
+
 (defun cm-accept/reject-change-at-point (&optional interactive)
   "Accept or reject change at point interactively.
 
@@ -780,7 +854,9 @@ is NIL."
               (insert (cm-substitution-string change action))))
           (point))
          ((eq action ?s)
-          (fourth change)))))))
+          (fourth change))))))
+  ;; empty message to clear mini-buffer
+  (message ""))
 
 (defun cm-substitution-string (change action)
   "Create the string to substitute CHANGE.
