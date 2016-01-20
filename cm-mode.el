@@ -206,6 +206,14 @@ it is added automatically."
     map)
   "Keymap for cm-mode.")
 
+(defvar cm-popup-menu
+  (let ((menu (make-sparse-keymap)))
+    (define-key menu [cm-delete-change-at-point] (cons "Delete" 'cm-delete-change-at-point))
+    (define-key menu [cm-reject-change-at-point] (cons "Reject" 'cm-reject-change-at-point))
+    (define-key menu [cm-accept-change-at-point] (cons "Accept" 'cm-accept-change-at-point))
+    menu)
+  "Keymap for popup menu on changes.")
+
 ;;;###autoload
 (define-minor-mode cm-mode
   "Minor mode for CriticMarkup.
@@ -270,7 +278,6 @@ it is added automatically."
 					   [cm-delete-change-at-point]
 					   (cons (format "Delete %s" markup-type)
 						 'cm-delete-change-at-point))))
-
 
 				  (call-interactively
 				   (or (car (x-popup-menu t menu))
