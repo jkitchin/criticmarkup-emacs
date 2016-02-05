@@ -797,29 +797,35 @@ is of any other type, check if there's a commend and include it."
 (defun cm-accept-change-at-point ()
   "Accept change at point."
   (interactive)
+  (cm-follow-changes -1)
   (let ((change (cm-expand-change (cm-markup-at-point)))
 	(inhibit-read-only t))
     (cm-without-following-changes
       (delete-region (third change) (fourth change))
-      (insert (cm-substitution-string change ?a)))))
+      (insert (cm-substitution-string change ?a))
+      (font-lock-fontify-buffer))))
 
 (defun cm-reject-change-at-point ()
   "Reject change at point."
   (interactive)
+  (cm-follow-changes -1)
   (let ((change (cm-expand-change (cm-markup-at-point)))
 	(inhibit-read-only t))
     (cm-without-following-changes
       (delete-region (third change) (fourth change))
-      (insert (cm-substitution-string change ?r)))))
+      (insert (cm-substitution-string change ?r))
+      (font-lock-fontify-buffer))))
 
 (defun cm-delete-change-at-point ()
   "Delete change at point."
   (interactive)
+  (cm-follow-changes -1)
   (let ((change (cm-expand-change (cm-markup-at-point)))
 	(inhibit-read-only t))
     (cm-without-following-changes
       (delete-region (third change) (fourth change))
-      (insert (cm-substitution-string change ?d)))))
+      (insert (cm-substitution-string change ?d))
+      (font-lock-fontify-buffer))))
 
 (defun cm-accept/reject-change-at-point (&optional interactive)
   "Accept or reject change at point interactively.
