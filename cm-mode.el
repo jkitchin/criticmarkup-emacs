@@ -403,7 +403,7 @@ starts with `cm-author'."
   (if (and (not (eq type 'cm-comment))
            (or cm-author (eq type 'cm-highlight)))
       (insert "{@"
-              (if cm-author (concat " @" cm-author))
+              (if cm-author (concat " @" cm-author) "")
               (if (and (eq type 'cm-highlight)
                        cm-author)
                   " "
