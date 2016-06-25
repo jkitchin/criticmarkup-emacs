@@ -45,8 +45,8 @@
 ;; - Addition {++ ++}
 ;; - Deletion {-- --}
 ;; - Substitution {~~ ~> ~~}
-;; - Comment {>> <<}
-;; - Highlight {== ==}{>> <<}
+;; - Comment {@ @}
+;; - Highlight {== ==}{@ @}
 ;;
 ;; `cm-mode' provides the following functionality:
 ;;
@@ -107,7 +107,7 @@ key.")
 (defvar cm-substitution-regexp "\\(?:{~~\\([[:ascii:]]\\|[[:nonascii:]]\\)*?~>\\([[:ascii:]]\\|[[:nonascii:]]\\)*?~~}\\)"
   "CriticMarkup substitution regexp.")
 
-(defvar cm-comment-regexp "\\(?:{>>\\([[:ascii:]]\\|[[:nonascii:]]\\)*?<<}\\)"
+(defvar cm-comment-regexp "\\(?:{@\\([[:ascii:]]\\|[[:nonascii:]]\\)*?@}\\)"
   "CriticMarkup comment regexp.")
 
 (defvar cm-highlight-regexp "\\(?:{==\\([[:ascii:]]\\|[[:nonascii:]]\\)*?==}\\)"
@@ -178,7 +178,7 @@ it is added automatically."
   (defvar cm-delimiters '((cm-addition "{++" "++}")
                           (cm-deletion "{--" "--}")
                           (cm-substitution "{~~" "~>" "~~}")
-                          (cm-comment "{>>" "<<}")
+                          (cm-comment "{@" "@}")
                           (cm-highlight "{==" "==}"))
     "CriticMarkup delimiters."))
 
@@ -402,13 +402,13 @@ starts with `cm-author'."
             (or edelim "")))
   (if (and (not (eq type 'cm-comment))
            (or cm-author (eq type 'cm-highlight)))
-      (insert "{>>"
-              (if cm-author (concat "@" cm-author))
+      (insert "{@"
+              (if cm-author (concat " @" cm-author))
               (if (and (eq type 'cm-highlight)
                        cm-author)
                   " "
                 "")
-              "<<}")))
+              "@}")))
 
 ;; Making an addition is fairly simple: we just need to add markup if point
 ;; isn't already at an addition markup, and then position point
